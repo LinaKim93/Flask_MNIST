@@ -43,6 +43,7 @@ predict_btn.addEventListener("click", function () {
 });
 
 clear_btn.addEventListener("click", function () {
+  result.textContent = "result : ";
   ctx.clearRect(0, 0, 300, 300);
   ctx.fillStyle = "white";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
