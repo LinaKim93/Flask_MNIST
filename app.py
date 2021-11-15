@@ -1,19 +1,13 @@
 from imageio import imread
 from skimage.transform import resize
-from skimage.color import rgb2gray
+from skimage.color import rgb2gray, rgba2rgb
 from flask import Flask, render_template, request
-from PIL import Image
 import numpy as np
 import flask_restful
-import json
 import re
 import base64
 import tensorflow as tf
 
-import sys
-import os
-
-sys.path.append(os.path.abspath("./model"))
 
 app = Flask(__name__)
 api = flask_restful.Api(app)
@@ -24,18 +18,6 @@ def parseImg(imgData):
     imgstr = re.search(b"base64,(.*)", imgData).group(1)
     with open("output.jpg", "wb") as output:
         output.write(base64.decodebytes(imgstr))
-
-
-def testImg():
-    # img = imread("output.jpg") / 255
-    img = imread("test.jpg") / 255
-    print(img.shape)
-    img = rgb2gray(img)
-    img = resize(img, (1, 28, 28, 1))
-    model = tf.keras.models.load_model("./model/mnist.h5")
-
-    pred = model.predict(img)
-    print(pred.argmax())
 
 
 @app.route("/")
@@ -52,15 +34,15 @@ def predict():
         return "POST"
 
     if request.method == "GET":
-        img = imread("output.jpg") / 255
+        img = imread("output.jpg") / np.float32(255)
+        img = rgba2rgb(img)
         img = rgb2gray(img)
-        img = resize(img, (1, 28, 28, 1))
-
-        model = tf.keras.models.load_model("./model/mnist.h5")
+        img = resize(img, (28, 28))
+        img = np.array(img < 0.9).astype(np.float32)
+        img = tf.expand_dims(img, 0)
+        img = tf.expand_dims(img, -1)
 
         pred = model.predict(img)
-        print(pred.argmax())
-
         result = pred.argmax()
 
         return str(result)
@@ -68,5 +50,5 @@ def predict():
 
 if __name__ == "__main__":
     print("server run")
-    testImg()
-    # app.run(host="localhost", port="5000", debug=True)
+    model = tf.keras.models.load_model("./model/mnist.h5")
+    app.run(host="localhost", port="5000", debug=True)
